@@ -10,7 +10,11 @@ use crate::{
 };
 
 fn padded(p: char, width: usize, text: &str) -> String {
-    let pad = width - text.len();
+    let pad =  if text.len() > width {
+        0
+    } else {
+        width - text.len()
+    };
     format!(
         "{}{}{}",
         iter::repeat(p).take(pad - pad / 2).collect::<String>(),
@@ -31,7 +35,7 @@ pub(super) fn render_cell_layout(
     layout: &BTreeMap<i32, BTreeMap<metadata::Column, String>>,
     highlight_row: impl Fn(Option<i32>, i32),
 ) {
-    let col_width = |cells: usize| cells.to_string().len() + 3;
+    let col_width = |title: &str| title.len() + 3;
 
     // If we are in a region, show rows at offsets relative to it. Otherwise, just show
     // the rotations directly.
@@ -50,28 +54,14 @@ pub(super) fn render_cell_layout(
 
     // Print the assigned cells, and their region offset or rotation.
     for (column, cells) in columns {
-        let width = col_width(*cells);
-        eprint!(
-            "{}|",
-            padded(
-                ' ',
-                width,
-                &format!(
-                    "{}{}",
-                    match column.column_type {
-                        Any::Advice => "A",
-                        Any::Fixed => "F",
-                        Any::Instance => "I",
-                    },
-                    column.index,
-                )
-            )
-        );
+        let width = col_width(column.name().as_str());
+        eprint!("{}|", padded(' ', width, column.name().as_str()));
     }
     eprintln!();
     eprint!("{}  +--------+", prefix);
-    for cells in columns.values() {
-        eprint!("{}+", padded('-', col_width(*cells), ""));
+    for column in columns.keys() {
+        let width = col_width(column.name().as_str());
+        eprint!("{}+", padded('-', width, ""));
     }
     eprintln!();
     for (rotation, row) in layout {
@@ -81,7 +71,7 @@ pub(super) fn render_cell_layout(
             padded(' ', 8, &(offset.unwrap_or(0) + rotation).to_string())
         );
         for (col, cells) in columns {
-            let width = col_width(*cells);
+            let width = col_width(col.name().as_str());
             eprint!(
                 "{}|",
                 padded(
@@ -121,7 +111,10 @@ pub(super) fn expression_to_string<F: Field>(
             layout
                 .get(&query.rotation.0)
                 .unwrap()
-                .get(&(Any::Advice, query.column_index).into())
+                .iter()
+               // .get(&(Any::Advice, query.column_index).into())
+                .find(|(k, _)| k.column_type == Any::Advice && k.index == query.column_index)
+                .map(|(_, v)| v.clone())
                 .unwrap()
                 .clone()
         },

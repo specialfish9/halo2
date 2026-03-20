@@ -25,16 +25,21 @@ pub trait ColumnType:
 pub struct Column<C: ColumnType> {
     index: usize,
     column_type: C,
+    name: Option<&'static str>,
 }
 
 impl<C: ColumnType> Column<C> {
     #[cfg(test)]
     pub(crate) fn new(index: usize, column_type: C) -> Self {
-        Column { index, column_type }
+        Column { index, column_type, name: None }
     }
 
     pub(crate) fn index(&self) -> usize {
         self.index
+    }
+
+    pub(crate) fn name(&self) -> Option<&'static str> {
+        self.name
     }
 
     /// Type of this column.
@@ -137,6 +142,7 @@ impl From<Column<Advice>> for Column<Any> {
         Column {
             index: advice.index(),
             column_type: Any::Advice,
+            name: advice.name,
         }
     }
 }
@@ -146,6 +152,7 @@ impl From<Column<Fixed>> for Column<Any> {
         Column {
             index: advice.index(),
             column_type: Any::Fixed,
+            name: advice.name,
         }
     }
 }
@@ -155,6 +162,7 @@ impl From<Column<Instance>> for Column<Any> {
         Column {
             index: advice.index(),
             column_type: Any::Instance,
+            name: advice.name,
         }
     }
 }
@@ -167,6 +175,7 @@ impl TryFrom<Column<Any>> for Column<Advice> {
             Any::Advice => Ok(Column {
                 index: any.index(),
                 column_type: Advice,
+                name: any.name,
             }),
             _ => Err("Cannot convert into Column<Advice>"),
         }
@@ -181,6 +190,7 @@ impl TryFrom<Column<Any>> for Column<Fixed> {
             Any::Fixed => Ok(Column {
                 index: any.index(),
                 column_type: Fixed,
+                name: any.name,
             }),
             _ => Err("Cannot convert into Column<Fixed>"),
         }
@@ -195,6 +205,7 @@ impl TryFrom<Column<Any>> for Column<Instance> {
             Any::Instance => Ok(Column {
                 index: any.index(),
                 column_type: Instance,
+                name: any.name,
             }),
             _ => Err("Cannot convert into Column<Instance>"),
         }
@@ -1372,6 +1383,7 @@ impl<F: Field> ConstraintSystem<F> {
         let tmp = Column {
             index: self.num_fixed_columns,
             column_type: Fixed,
+            name: None,
         };
         self.num_fixed_columns += 1;
         tmp
@@ -1379,9 +1391,19 @@ impl<F: Field> ConstraintSystem<F> {
 
     /// Allocate a new advice column
     pub fn advice_column(&mut self) -> Column<Advice> {
+        self.allocate_advice_column(None)
+    }
+
+    /// Allocate a new advice column with a name
+    pub fn named_advice_column(&mut self, name: &'static str) -> Column<Advice> {
+        self.allocate_advice_column(Some(name))
+    }
+
+    fn allocate_advice_column(&mut self, name: Option<&'static str>)-> Column<Advice> {
         let tmp = Column {
             index: self.num_advice_columns,
             column_type: Advice,
+             name,
         };
         self.num_advice_columns += 1;
         self.num_advice_queries.push(0);
@@ -1393,6 +1415,7 @@ impl<F: Field> ConstraintSystem<F> {
         let tmp = Column {
             index: self.num_instance_columns,
             column_type: Instance,
+            name: None,
         };
         self.num_instance_columns += 1;
         tmp

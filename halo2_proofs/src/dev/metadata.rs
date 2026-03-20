@@ -1,5 +1,6 @@
 //! Metadata about circuits.
 
+use std::arch::x86_64::__cpuid_count;
 use crate::plonk::{self, Any};
 use std::fmt;
 
@@ -10,7 +11,24 @@ pub struct Column {
     pub(super) column_type: Any,
     /// The index of the column.
     pub(super) index: usize,
+    /// The name of the column.
+    pub(super) name: Option<&'static str>,
 }
+
+impl Column {
+    /// name returns the name of the column.
+    pub fn name(&self)-> String {
+        match self.name {
+            Some(n) => n.to_string(),
+            None => match self.column_type {
+                Any::Advice => format!("A{}", self.index),
+                Any::Fixed => format!("F{}", self.index),
+                Any::Instance => format!("I{}", self.index),
+            },
+        }
+    }
+}
+
 
 impl fmt::Display for Column {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -20,7 +38,7 @@ impl fmt::Display for Column {
 
 impl From<(Any, usize)> for Column {
     fn from((column_type, index): (Any, usize)) -> Self {
-        Column { column_type, index }
+        Column { column_type, index, name: None}
     }
 }
 
@@ -29,6 +47,7 @@ impl From<plonk::Column<Any>> for Column {
         Column {
             column_type: *column.column_type(),
             index: column.index(),
+            name: column.name(),
         }
     }
 }
