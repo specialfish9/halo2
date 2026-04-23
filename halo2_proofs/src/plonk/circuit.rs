@@ -1380,10 +1380,19 @@ impl<F: Field> ConstraintSystem<F> {
 
     /// Allocate a new fixed column
     pub fn fixed_column(&mut self) -> Column<Fixed> {
+        self.allocate_fixed_column(None)
+    }
+
+    /// Allocate a new fixed column with a name
+    pub fn named_fixed_column(&mut self, name: &'static str) -> Column<Fixed> {
+        self.allocate_fixed_column(Some(name))
+    }
+
+    fn allocate_fixed_column(&mut self, name: Option<&'static str>) -> Column<Fixed> {
         let tmp = Column {
             index: self.num_fixed_columns,
             column_type: Fixed,
-            name: None,
+            name,
         };
         self.num_fixed_columns += 1;
         tmp
@@ -1412,10 +1421,19 @@ impl<F: Field> ConstraintSystem<F> {
 
     /// Allocate a new instance column
     pub fn instance_column(&mut self) -> Column<Instance> {
+        self.allocate_instance_column(None)
+    }
+
+    /// Allocate a new instance column with a name
+    pub fn named_instance_column(&mut self, name: &'static str) -> Column<Instance> {
+        self.allocate_instance_column(Some(name))
+    }
+
+    fn allocate_instance_column(&mut self, name: Option<&'static str>)-> Column<Instance> {
         let tmp = Column {
             index: self.num_instance_columns,
             column_type: Instance,
-            name: None,
+            name,
         };
         self.num_instance_columns += 1;
         tmp
